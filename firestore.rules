@@ -1,0 +1,100 @@
+rules_version = '2';
+// Academic-prototype rules (least privilege).
+// Roles: the Firebase Auth custom claim `role` ("admin" | "researcher"), settable only with the Admin SDK
+// (scripts/set-role.mjs or the backend). Anyone else who is signed in is a respondent.
+// Written ONLY by the trusted backend (Admin SDK bypasses rules): privacy_results, model_metrics, dashboard_statistics.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function role() { return signedIn() ? request.auth.token.get('role', '') : ''; }
+    function isAdmin() { return role() == 'admin'; }
+    function isResearcher() { return role() == 'researcher' || role() == 'admin'; }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // ---- Respondent profiles ----
+    match /users/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      // A person may create only their OWN profile, and only as a respondent. Staff roles can never be self-assigned.
+      allow create: if isOwner(uid) && !isResearcher()
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'email', 'role', 'emailVerified',
+             'registrationConsentVersion', 'registrationConsentAt', 'createdAt', 'updatedAt', 'lastLoginAt', 'assessmentCompleted'])
+        && request.resource.data.uid == uid
+        && request.resource.data.role == 'respondent'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.assessmentCompleted == false
+        && request.resource.data.createdAt == request.time;
+      // The owner may touch only harmless fields; `role` can never change from the client.
+      allow update: if isOwner(uid)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['displayName', 'emailVerified', 'lastLoginAt', 'updatedAt', 'assessmentCompleted']);
+      allow delete: if false;
+    }
+
+    // ---- Questionnaire content ----
+    // Anyone may read the PUBLISHED questionnaire only. Published/archived versions are frozen except for archiving.
+    match /questionnaires/{id} {
+      allow read: if resource.data.status == 'published' || isAdmin();
+      allow create: if isAdmin() && request.resource.data.status == 'draft';
+      allow update: if isAdmin() && (
+        resource.data.status == 'draft' ||
+        (request.resource.data.status == 'archived' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt', 'archivedAt']))
+      );
+      allow delete: if false;
+    }
+    match /survey_questions/{id} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;   // archive instead, so history stays reproducible
+    }
+    match /demographic_questions/{id} {
+      allow read, create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---- Respondent submissions ----
+    match /survey_responses/{id} {
+      // Respondents read only their own; admins read all. (Queries must filter on respondentId == their uid.)
+      allow read: if isAdmin() || (signedIn() && resource.data.respondentId == request.auth.uid);
+      // Create-only: a saved response can never be edited, replaced or deleted, so repeated clicks cannot duplicate or tamper.
+      // Staff accounts cannot submit. The answers must belong to the signed-in user and the version currently published.
+      // Per-answer validation against the questionnaire is re-done by the backend (rules cannot iterate lists).
+      allow create: if signedIn() && !isResearcher()
+        && request.resource.data.keys().hasOnly(['responseId', 'respondentId', 'questionnaireId', 'questionnaireVersion',
+             'consentGiven', 'consentVersion', 'demographics', 'answers', 'status', 'submittedAt'])
+        && request.resource.data.responseId == id
+        && request.resource.data.respondentId == request.auth.uid
+        && request.resource.data.status == 'submitted'
+        && request.resource.data.consentGiven == true
+        && request.resource.data.submittedAt == request.time
+        && request.resource.data.answers is list && request.resource.data.answers.size() <= 200
+        && request.resource.data.demographics is map
+        && get(/databases/$(database)/documents/questionnaires/$(request.resource.data.questionnaireId)).data.status == 'published'
+        && get(/databases/$(database)/documents/questionnaires/$(request.resource.data.questionnaireId)).data.version == request.resource.data.questionnaireVersion;
+      allow update, delete: if false;
+    }
+
+    // ---- Backend-written outputs ----
+    match /privacy_results/{id} {
+      // A respondent reads only their own result. Staff read pseudonymous results (no names/emails live here).
+      allow read: if isResearcher() || (signedIn() && resource.data.respondentId == request.auth.uid);
+      allow write: if false;    // only the trusted backend (Admin SDK) writes classifications
+    }
+    match /model_metrics/{id} { allow read: if isResearcher(); allow write: if false; }
+    match /dashboard_statistics/{id} { allow read: if isResearcher(); allow write: if false; }
+
+    // ---- Admin tooling ----
+    match /admin_audit_logs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && request.resource.data.actorUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+    match /system_settings/{id} {
+      allow read: if id == 'app' || isAdmin();   // 'app' (survey open/closed, consent version) is public; 'ml_schema' is admin-only
+      allow write: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
