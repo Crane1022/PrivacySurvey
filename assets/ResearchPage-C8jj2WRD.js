@@ -1,1 +1,0 @@
-import{I as e,Y as t,ct as n}from"./auth-BUWGXgyt.js";import{C as r}from"./index-CzzCzOgW.js";import{t as i}from"./ResearchPanel-BR0-BQLe.js";var a={__name:`ResearchPage`,setup(a){let o=r();return(r,a)=>(t(),e(i,{section:n(o).meta.section},null,8,[`section`]))}};export{a as default};

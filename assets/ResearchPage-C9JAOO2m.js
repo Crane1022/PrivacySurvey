@@ -1,0 +1,1 @@
+import{I as e,Y as t,ct as n}from"./auth-CmxpilGr.js";import{C as r}from"./index-CN94eAe2.js";import{t as i}from"./ResearchPanel-Bu3Y4s08.js";var a={__name:`ResearchPage`,setup(a){let o=r();return(r,a)=>(t(),e(i,{section:n(o).meta.section},null,8,[`section`]))}};export{a as default};
