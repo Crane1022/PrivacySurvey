@@ -41,8 +41,8 @@ const fmt = v => (v ? new Date(v).toLocaleString() : '-')
             <tr v-for="r in pageRows" :key="r.id">
               <td><code>{{ r.responseId }}</code></td>
               <td>v{{ r.questionnaireVersion }}</td>
-              <td>{{ Object.keys(r.answers ?? {}).length }}</td>
-              <td>{{ r.submissionStatus }}<span v-if="r.isMockData" class="ad-badge b-draft" style="margin-left: 6px;">demo</span></td>
+              <td>{{ r.answers?.length ?? 0 }}</td>
+              <td>{{ r.status }}</td>
               <td>{{ fmt(r.submittedAt) }}</td>
             </tr>
           </tbody>

@@ -84,7 +84,7 @@ async function logout() { await auth.logout(); router.push({ name: 'landing' }) 
         <p class="wp-eyebrow">YOUR LATEST PRIVACY PROFILE</p>
         <template v-if="latestResult">
           <p class="big" :style="{ color: meta?.color }">{{ latestResult.classification }}</p>
-          <p v-if="latestResult.isDemo" class="chip">Demonstration result, not a real prediction</p>
+          <p v-if="latestResult.source === 'browser-test'" class="chip">From the test classifier, not the final trained model</p>
           <p class="wp-text">{{ meta?.desc }}</p>
           <router-link class="wp-btn" :to="{ name: 'result', params: { id: latestResult.responseId } }">View full result</router-link>
         </template>
@@ -105,7 +105,7 @@ async function logout() { await auth.logout(); router.push({ name: 'landing' }) 
             <tbody>
               <tr v-for="h in history" :key="h.responseId">
                 <td>{{ fmt(h.submittedAt) }}</td><td>v{{ h.questionnaireVersion }}</td>
-                <td>{{ h.result ? h.result.classification : 'Pending' }}<span v-if="h.result?.isDemo" class="chip" style="margin-left: 8px;">demo</span></td>
+                <td>{{ h.result ? h.result.classification : 'Pending' }}<span v-if="h.result?.source === 'browser-test'" class="chip" style="margin-left: 6px;" title="Made by the test classifier, not the final trained model">test model</span></td>
                 <td><router-link :to="{ name: 'result', params: { id: h.responseId } }">Open</router-link></td>
               </tr>
             </tbody>

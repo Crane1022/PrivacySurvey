@@ -16,15 +16,15 @@ const collapsed = ref(localStorage.getItem('wpsi_sidebar_collapsed') === '1') //
 const query = ref('')
 
 const ADMIN = [
-  ['Overview', '/staff/dashboard', 'grid'], ['Question Bank', '/staff/questions', 'list'], ['Questionnaire Management', '/staff/questionnaires', 'layers'],
+  ['Overview', '/staff/dashboard', 'grid'], ['Import Survey', '/staff/import', 'upload'], ['Question Bank', '/staff/questions', 'list'], ['Questionnaire Management', '/staff/questionnaires', 'layers'],
   ['Demographic Questions', '/staff/demographic-questions', 'clipboard'], ['Survey Responses', '/staff/responses', 'inbox'],
   ['Privacy Profiling Results', '/staff/results', 'shield'], ['Research Analytics', '/staff/analytics', 'chart'],
-  ['ML Model Information', '/staff/ml-info', 'cpu'], ['User & Role Management', '/staff/users', 'users'], ['System Settings', '/staff/settings', 'settings'],
+  ['ML Model & Test Lab', '/staff/ml-info', 'cpu'], ['User & Role Management', '/staff/users', 'users'], ['System Settings', '/staff/settings', 'settings'],
 ]
 const RESEARCHER = [
   ['Overview', '/staff/dashboard', 'grid'], ['Privacy Profiling Results', '/staff/results', 'shield'], ['Survey Analytics', '/staff/research/survey', 'list'],
   ['Demographic Insights', '/staff/research/demographics', 'users'], ['Privacy Segmentation', '/staff/research/segmentation', 'chart'],
-  ['Machine Learning Insights', '/staff/research/ml', 'cpu'], ['Clustering Analysis', '/staff/research/clusters', 'sparkle'], ['Reports', '/staff/research/reports', 'inbox'],
+  ['ML Model & Test Lab', '/staff/ml-info', 'cpu'], ['Clustering Analysis', '/staff/research/clusters', 'sparkle'], ['Reports', '/staff/research/reports', 'inbox'],
 ]
 const items = computed(() => (auth.isAdmin ? ADMIN : RESEARCHER))
 const found = computed(() => {
@@ -95,7 +95,7 @@ async function signOut() {
       </header>
 
       <div v-if="config.isMock" class="wp-demo" style="margin: 14px 24px 0;" role="note">
-        Demonstration mode: you are using a browser-only demo session. Data is stored in this browser, not in Firestore.
+        Local test mode (VITE_DATA_MODE=mock): data is stored only in this browser, not in Firestore.
       </div>
       <main id="main" class="ad-content">
         <PageHeader :title="route.meta.title ?? ''" :crumbs="crumbs" />

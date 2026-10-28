@@ -1,5 +1,4 @@
 // Shared plumbing for the Firestore-backed services (live) and the browser demo store (mock).
-import { config } from '../config'
 import { getStore } from './dataStore'
 import { useAuthStore } from '../stores/auth'
 
@@ -18,15 +17,9 @@ export function clean(v) {
   return v
 }
 
-let seeded
-// Returns the data store. In mock mode the first call seeds DEMONSTRATION content (never in live mode).
+// Returns the data store (Firestore in live mode, browser storage in local test mode). No sample data is ever added.
 export async function db() {
-  const s = await getStore()
-  if (config.isMock && !seeded) {
-    seeded = import('./mockSeed').then(m => m.seedMock(s))
-    await seeded
-  }
-  return s
+  return getStore()
 }
 
 // Append-only audit entry for admin actions (actor comes from the verified auth state).

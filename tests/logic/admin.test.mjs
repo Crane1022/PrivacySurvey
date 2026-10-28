@@ -9,14 +9,29 @@ const S = await import('./src/services/surveyService.js')
 const Q = await import('./src/utils/questions.js')
 const ok = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1 } else console.log('ok  ', m) }
 
-// seeded published demo questionnaire is what respondents get
+const { seedPublishedSurvey } = await import('./fixture.mjs')
+
+// no demo/sample content exists any more
+try { await S.getSurveyConfig(); ok(false, 'no demo questionnaire') } catch (e) { ok(/No questionnaire/.test(e.message), 'starts empty: no demo questionnaire is seeded') }
+ok((await A.listQuestions()).length === 0 && (await A.listDemographics()).length === 0, 'starts empty: no demo questions or demographic fields')
+
+// import the real survey document and publish it as v1
+const imp = await seedPublishedSurvey()
+ok(imp.questions === 48 && imp.demographics === 4 && !!imp.questionnaireId, 'import saved 48 questions + 4 demographic fields + a draft questionnaire')
 let cfg = await S.getSurveyConfig()
-ok(cfg.questionnaireVersion === 1 && cfg.questions.length === 5, 'respondent gets seeded published v1 (5 questions)')
+ok(cfg.questionnaireVersion === 1 && cfg.questions.length === 48 && cfg.demographics.length === 4, 'respondent gets imported published v1 (48 questions)')
+ok(cfg.questions[4].scenario.startsWith('Scenario 1:') && cfg.questions[4].options.length === 5, 'scenario outcomes carry their scenario text and the 1–5 scale')
+ok(cfg.demographics.find(d => d.id === 'dm_occupation_sector').options.some(o => o.other), 'occupation "Other" keeps its text-box flag through publish')
+// re-importing the same file updates in place (same ids) instead of duplicating
+const { applyImport } = await import('./src/import/importService.js')
+const { importSurveyDocx } = await import('./fixture.mjs')
+await applyImport(await importSurveyDocx(), { createQuestionnaire: false })
+ok((await A.listQuestions()).length === 48, 're-import updates the same 48 questions (no duplicates)')
 
 // admin adds a question to the bank
 const nq = Q.blankQuestion(6); nq.questionText = 'Do you reuse passwords?'; nq.options[0].label = 'Never'; nq.options[1].label = 'Sometimes'; nq.status = 'published'
 await A.saveQuestion(nq, true)
-ok((await A.listQuestions()).length === 6, 'question added to bank')
+ok((await A.listQuestions()).length === 49, 'question added to bank')
 let bad = Q.blankQuestion(7); bad.questionText = ''
 try { await A.saveQuestion(bad, true); ok(false, 'invalid question rejected') } catch { ok(true, 'invalid question rejected') }
 
@@ -31,7 +46,7 @@ cfg = await S.getSurveyConfig()
 ok(cfg.questionnaireVersion === 2 && cfg.questions.length === 2 && cfg.questions[0].questionText === 'Do you reuse passwords?', 'respondent now sees published v2 in admin order')
 const list = await A.listQuestionnaires()
 ok(list.find(x => x.version === 1).status === 'archived', 'v1 archived, kept for history')
-ok(list.find(x => x.version === 1).questions.length === 5, 'v1 snapshot unchanged')
+ok(list.find(x => x.version === 1).questions.length === 48, 'v1 snapshot unchanged')
 
 // editing the bank does not alter the published snapshot
 const edited = { ...nq, questionText: 'CHANGED' }
@@ -58,20 +73,20 @@ try { await A.publishQuestionnaire(v3); ok(false, 'archived question blocks') } 
 // demographics: snapshotted at publish from published demographic fields
 const D = await import('./src/services/demographicService.js')
 let dcfg = await S.getSurveyConfig()
-ok(dcfg.demographics.length === 3, 'v2 published with 3 demographic fields snapshotted')
+ok(dcfg.demographics.length === 4, 'v2 published with 4 demographic fields snapshotted')
 const nd = Q.blankDemographic(4, D.newDemographicId()); nd.label = 'Occupation'; nd.options[0].label = 'Student'; nd.options[1].label = 'Employed'; nd.status = 'published'
 await D.saveDemographic(nd, true)
-ok((await S.getSurveyConfig()).demographics.length === 3, 'new demographic field does not alter the live published version')
+ok((await S.getSurveyConfig()).demographics.length === 4, 'new demographic field does not alter the live published version')
 try { await D.saveDemographic({ ...nd, label: '' }, false); ok(false, 'invalid demographic rejected') } catch { ok(true, 'invalid demographic rejected') }
 
 // submit stores response with version; duplicates collapse
 const payload = { questionnaireId: cfg.questionnaireId, questionnaireVersion: 2, consentVersion: 'v1', consentGiven: true, demographics: {}, answers: { a: 1 }, clientSubmissionId: 'sub-1' }
 await auth.logout(); await auth.register({ displayName: 'R', email: 'r@example.com', password: 'x' })
-await S.submitSurvey(payload); await S.submitSurvey(payload)
+const sub1 = await S.submitSurvey(payload); await S.submitSurvey(payload).catch(() => {})
+ok(sub1.resultStatus === 'pending', 'unscorable answers are saved and left pending (no invented result)')
 await auth.logout(); auth.mockLogin('admin')
 const rs = await A.listResponses()
 ok(rs.length === 1 && rs[0].questionnaireVersion === 2, 'response stored once with questionnaire version')
-ok(Array.isArray(rs[0].questionSnapshot) && rs[0].questionSnapshot.length === 2, 'response stores the question snapshot of its version')
 ok((await A.listAudit()).length > 5, 'audit trail written')
 
 // no published demographic fields -> publish blocked

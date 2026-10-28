@@ -27,6 +27,7 @@ const ICONS = {
   arrow: ['M7 17L17 7', 'M8 7h9v9'],
   mail: ['M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z', 'M22 6l-10 7L2 6'],
   clipboard: ['M9 3h6v4H9z', 'M7 5H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2', 'M8 12h8', 'M8 16h5'],
+  upload: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'M17 8l-5-5-5 5', 'M12 3v12'],
   sparkle: ['M12 3l2.1 5.9L20 11l-5.9 2.1L12 19l-2.1-5.9L4 11l5.9-2.1L12 3z'],
 }
 const props = defineProps({ name: { type: String, required: true }, size: { type: Number, default: 18 } })

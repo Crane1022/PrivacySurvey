@@ -14,3 +14,5 @@ export const WPSI_CATEGORIES = {
     desc: 'The Unconcerned are generally comfortable sharing personal information and tend to see little need for additional privacy controls.',
   },
 }
+
+export const WPSI_COLORS = Object.fromEntries(Object.entries(WPSI_CATEGORIES).map(([k, v]) => [k, v.color]))

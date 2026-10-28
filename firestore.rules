@@ -2,7 +2,8 @@ rules_version = '2';
 // Academic-prototype rules (least privilege).
 // Roles: the Firebase Auth custom claim `role` ("admin" | "researcher"), settable only with the Admin SDK
 // (scripts/set-role.mjs or the backend). Anyone else who is signed in is a respondent.
-// Written ONLY by the trusted backend (Admin SDK bypasses rules): privacy_results, model_metrics, dashboard_statistics.
+// Written ONLY by the trusted backend (Admin SDK bypasses rules): model_metrics, dashboard_statistics.
+// privacy_results: backend, plus the clearly marked TEST CLASSIFIER exception below (remove when the backend is live).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -79,7 +80,22 @@ service cloud.firestore {
     match /privacy_results/{id} {
       // A respondent reads only their own result. Staff read pseudonymous results (no names/emails live here).
       allow read: if isResearcher() || (signedIn() && resource.data.respondentId == request.auth.uid);
-      allow write: if false;    // only the trusted backend (Admin SDK) writes classifications
+
+      // ---- TEST CLASSIFIER (VITE_CLASSIFIER_MODE=local) ----
+      // Until the FastAPI backend exists, the browser runs the simple test model (src/ml) and saves the result here.
+      // A respondent may create exactly ONE result (id = "res_" + responseId) for THEIR OWN saved response; it can never be edited.
+      // Results are marked source == 'browser-test' so they are never confused with the trained model's output.
+      // DELETE THIS BLOCK when the backend writes privacy_results with the Admin SDK.
+      allow create: if signedIn() && !isResearcher()
+        && id == 'res_' + request.resource.data.responseId
+        && request.resource.data.respondentId == request.auth.uid
+        && request.resource.data.source == 'browser-test'
+        && request.resource.data.createdAt == request.time
+        && get(/databases/$(database)/documents/survey_responses/$(request.resource.data.responseId)).data.respondentId == request.auth.uid;
+      // Admins may re-run the test model on all responses after changing its settings (ML Model & Test Lab page).
+      allow create, update: if isAdmin() && request.resource.data.source == 'browser-test'
+        && id == 'res_' + request.resource.data.responseId;
+      allow delete: if false;
     }
     match /model_metrics/{id} { allow read: if isResearcher(); allow write: if false; }
     match /dashboard_statistics/{id} { allow read: if isResearcher(); allow write: if false; }
@@ -91,7 +107,9 @@ service cloud.firestore {
       allow update, delete: if false;
     }
     match /system_settings/{id} {
-      allow read: if id == 'app' || isAdmin();   // 'app' (survey open/closed, consent version) is public; 'ml_schema' is admin-only
+      // 'app' (survey open/closed, consent version) is public; 'ml_model' (test classifier settings) is readable by any
+      // signed-in user because the browser runs the test model; 'ml_schema' and anything else is admin-only.
+      allow read: if id == 'app' || (id == 'ml_model' && signedIn()) || isAdmin();
       allow write: if isAdmin();
     }
 

@@ -30,7 +30,12 @@ export const useAssessmentStore = defineStore('assessment', {
     currentQuestion() { return this.questions[this.currentIndex] ?? null },
     unansweredRequired() { return this.questions.filter(q => q.isRequired && !isAnswered(q, this.answers[q.questionId])) },
     demographicsComplete() {
-      return (this.config?.demographics ?? []).every(f => !f.required || !!this.demographics[f.id])
+      return (this.config?.demographics ?? []).every(f => {
+        const v = this.demographics[f.id]
+        if (!v) return !f.required
+        const chosen = f.options.find(o => o.value === v)
+        return !chosen?.other || !!this.demographics[`${f.id}__other`]?.trim() // "Other" needs the text filled in
+      })
     },
   },
 

@@ -1,4 +1,3 @@
-import { config } from '../config'
 import { db, audit, clean, rid, C } from './core'
 import { getSettings, getMlSchema } from './settingsService'
 import { publishedDemographicSnapshot } from './demographicService'
@@ -114,7 +113,7 @@ export async function getPublishedSurveyConfig() {
   const qn = await s.queryOne(C.questionnaires, 'status', 'published')
   if (!qn) throw new Error('No questionnaire is currently published. Please check back later.')
   return {
-    isDemo: config.isMock, questionnaireId: qn.questionnaireId, questionnaireVersion: qn.version, title: qn.title,
+    questionnaireId: qn.questionnaireId, questionnaireVersion: qn.version, title: qn.title,
     consentVersion: settings.consentVersion, surveyOpen: settings.surveyOpen,
     demographics: qn.demographics, questions: qn.questions,
   }

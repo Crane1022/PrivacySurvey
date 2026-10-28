@@ -11,6 +11,13 @@ const store = useAssessmentStore()
 const showErrors = ref(false)
 onMounted(() => store.loadConfig())
 
+const isOther = f => !!f.options.find(o => o.value === store.demographics[f.id])?.other
+
+function choose(f, value) {
+  if (!f.options.find(o => o.value === value)?.other) delete store.demographics[f.id + '__other'] // no stale "Other" text
+  store.setDemographic(f.id, value)
+}
+
 function next() {
   if (!store.demographicsComplete) {
     showErrors.value = true
@@ -39,18 +46,23 @@ function next() {
           <template v-if="f.type === 'radio'">
             <legend class="wp-label">{{ f.label }}<span v-if="f.required" aria-hidden="true"> *</span></legend>
             <label v-for="o in f.options" :key="o.value" class="wp-option">
-              <input type="radio" :name="f.id" :value="o.value" :checked="store.demographics[f.id] === o.value" @change="store.setDemographic(f.id, o.value)" />
+              <input type="radio" :name="f.id" :value="o.value" :checked="store.demographics[f.id] === o.value" @change="choose(f, o.value)" />
               <span>{{ o.label }}</span>
             </label>
           </template>
           <template v-else>
             <label class="wp-label" :for="f.id">{{ f.label }}<span v-if="f.required" aria-hidden="true"> *</span></label>
-            <select :id="f.id" class="wp-select" :value="store.demographics[f.id] ?? ''" @change="store.setDemographic(f.id, $event.target.value)">
+            <select :id="f.id" class="wp-select" :value="store.demographics[f.id] ?? ''" @change="choose(f, $event.target.value)">
               <option value="" disabled>Select…</option>
               <option v-for="o in f.options" :key="o.value" :value="o.value">{{ o.label }}</option>
             </select>
           </template>
+          <input
+            v-if="isOther(f)" class="wp-input" style="margin-top: 8px;" maxlength="80" :aria-label="f.label + ': please specify'" placeholder="Please specify"
+            :value="store.demographics[f.id + '__other'] ?? ''" @input="store.setDemographic(f.id + '__other', $event.target.value)"
+          />
           <p v-if="showErrors && f.required && !store.demographics[f.id]" class="wp-error" role="alert">Please answer this question.</p>
+          <p v-else-if="showErrors && isOther(f) && !store.demographics[f.id + '__other']?.trim()" class="wp-error" role="alert">Please specify.</p>
         </fieldset>
 
         <div class="wp-actions">

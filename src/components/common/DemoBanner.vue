@@ -17,6 +17,6 @@ function exit() {
     <button class="wp-btn ad-mini" @click="exit">Exit preview</button>
   </div>
   <div v-else-if="config.isMock" class="wp-demo" role="note">
-    Demonstration mode: data shown is sample data, not real research output.
+    Local test mode: answers are stored only in this browser, not in Firestore.
   </div>
 </template>

@@ -4,9 +4,7 @@ import StateBlock from '../common/StateBlock.vue'
 import PieChart from '../charts/PieChart.vue'
 import BarList from '../charts/BarList.vue'
 import HeatmapTable from '../charts/HeatmapTable.vue'
-import { config } from '../../config'
-import { WPSI_CATEGORIES } from '../../utils/wpsi'
-import { WPSI_COLORS } from '../../mock/dashboardMock'
+import { WPSI_CATEGORIES, WPSI_COLORS } from '../../utils/wpsi'
 import * as svc from '../../services/dashboardService'
 
 const props = defineProps({ section: { type: String, required: true } })
@@ -71,7 +69,6 @@ function exportSurvey() {
 
 <template>
   <div>
-    <div v-if="config.isMock" class="wp-demo" role="note">Sample data for demonstration. Live Mode shows real aggregates from the backend.</div>
     <StateBlock :loading="loading" :error="error" @retry="load">
       <!-- Overview -->
       <template v-if="section === 'overview' && data">
@@ -101,7 +98,8 @@ function exportSurvey() {
 
       <!-- Survey analytics -->
       <template v-else-if="section === 'survey' && data">
-        <p v-if="!data.questions?.length" class="wp-text">No responses to analyse yet.</p>
+        <p v-if="data.note" class="wp-demo" role="note">{{ data.note }}</p>
+        <p v-else-if="!data.questions?.length" class="wp-text">No responses to analyse yet.</p>
         <div v-for="q in data.questions" :key="q.questionId" class="wp-card">
           <h2 class="wp-title" style="font-size: 17px;">{{ q.text }}</h2>
           <BarList :title="q.text" :items="q.options.map(o => ({ label: o.label, value: o.count }))" />
@@ -110,7 +108,8 @@ function exportSurvey() {
 
       <!-- Demographics -->
       <template v-else-if="section === 'demographics' && data">
-        <p v-if="!data.groups?.length" class="wp-text">No demographic data yet.</p>
+        <p v-if="data.note" class="wp-demo" role="note">{{ data.note }}</p>
+        <p v-else-if="!data.groups?.length" class="wp-text">No classified responses with demographic data yet.</p>
         <div v-for="g in data.groups" :key="g.name" class="wp-card">
           <h2 class="wp-title" style="font-size: 17px;">{{ g.name }} by WPSI category</h2>
           <div v-for="r in g.rows" :key="r.label" style="margin-bottom: 12px;">
@@ -124,21 +123,21 @@ function exportSurvey() {
       <!-- ML -->
       <template v-else-if="section === 'ml' && data">
         <div class="wp-card">
-          <p class="wp-text" style="margin: 0;">Model: <strong>{{ data.modelVersion }}</strong> · {{ data.algorithm }}</p>
+          <p class="wp-text" style="margin: 0 0 8px;">Active model: <strong>{{ data.activeModel }} v{{ data.version }}</strong> · {{ data.weightedQuestions }} weighted question(s) ·
+            Fundamentalist ≥ {{ Math.round(data.thresholds.fundamentalist * 100) }}, Unconcerned ≤ {{ Math.round(data.thresholds.unconcerned * 100) }}</p>
+          <router-link class="wp-btn ad-mini" to="/staff/ml-info">Open ML Model &amp; Test Lab</router-link>
         </div>
-        <div class="ad-grid">
-          <div v-for="m in ['accuracy', 'precision', 'recall', 'f1']" :key="m" class="ad-stat" style="text-transform: capitalize;">{{ m === 'f1' ? 'F1-score' : m }}<b>{{ pctMetric(data.metrics?.[m]) }}</b></div>
+        <div class="wp-card">
+          <h2 class="wp-title" style="font-size: 17px;">Spread of stored concern scores ({{ data.total }} results)</h2>
+          <BarList title="Concern score distribution" :items="data.scoreBuckets" />
         </div>
-        <div v-if="data.confusionMatrix" class="wp-card"><h2 class="wp-title" style="font-size: 17px;">Confusion matrix</h2><HeatmapTable :labels="data.confusionMatrix.labels" :matrix="data.confusionMatrix.matrix" /></div>
-        <div v-if="data.featureImportance?.length" class="wp-card"><h2 class="wp-title" style="font-size: 17px;">Feature importance</h2><BarList title="Feature importance" :items="data.featureImportance.map(f => ({ label: f.feature, value: Number(f.importance.toFixed(3)) }))" /></div>
+        <div v-if="data.resultsByModel.length" class="wp-card"><h2 class="wp-title" style="font-size: 17px;">Results per model version</h2><BarList title="Results per model version" :items="data.resultsByModel" /></div>
+        <p class="wp-text">Accuracy, precision, recall and a confusion matrix need labelled data and the trained model; they appear here once the ML pipeline provides them.</p>
       </template>
 
       <!-- Clusters -->
-      <template v-else-if="section === 'clusters' && data">
-        <p class="wp-text">Supporting K-Means analysis (k = {{ data.k }}). Clusters are not assumed to match the three WPSI categories.</p>
-        <div class="wp-card"><BarList title="Cluster sizes" :items="data.clusters.map(c => ({ label: 'Cluster ' + c.id, value: c.size }))" /></div>
-        <div v-for="c in data.clusters" :key="c.id" class="wp-card"><strong>Cluster {{ c.id }}</strong><p class="wp-text" style="margin: 6px 0 0;">{{ c.interpretation }}</p></div>
-        <p v-if="!data.points" class="wp-text">No 2-D projection has been provided by the ML pipeline yet.</p>
+      <template v-else-if="section === 'clusters'">
+        <div class="wp-card"><p class="wp-text" style="margin: 0;">Clustering analysis (e.g. K-Means) is part of the ML pipeline and has not been run yet. Nothing is shown until real results exist.</p></div>
       </template>
 
       <!-- Reports -->

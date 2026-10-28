@@ -5,7 +5,6 @@ import Pagination from '../../components/ui/Pagination.vue'
 import BarList from '../../components/charts/BarList.vue'
 import { listAllResults } from '../../services/resultService'
 import { WPSI_CATEGORIES } from '../../utils/wpsi'
-import { config } from '../../config'
 
 const rows = ref([])
 const loading = ref(true)
@@ -40,7 +39,7 @@ const fmt = v => (v ? new Date(v).toLocaleString() : '-')
 
 <template>
   <div>
-    <p class="wp-text">Stored classifications only. Respondents appear as pseudonymous IDs (no names or emails).<span v-if="config.isMock"> Demonstration mode: rows are flagged demo samples.</span></p>
+    <p class="wp-text">Stored classifications only. Respondents appear as pseudonymous IDs (no names or emails).<span> Rows marked <em>test model</em> come from the test classifier.</span></p>
     <div class="ad-toolbar">
       <select v-model="category" class="ad-input" aria-label="Filter by WPSI category"><option value="">All categories</option><option v-for="(c, n) in WPSI_CATEGORIES" :key="n">{{ n }}</option></select>
       <select v-model="version" class="ad-input" aria-label="Filter by questionnaire version"><option value="">All versions</option><option v-for="v in versions" :key="v" :value="String(v)">Version {{ v }}</option></select>
@@ -55,7 +54,7 @@ const fmt = v => (v ? new Date(v).toLocaleString() : '-')
           <tbody>
             <tr v-for="r in pageRows" :key="r.id">
               <td><code>{{ (r.resultId ?? r.id).slice(0, 14) }}</code></td><td><code>{{ (r.respondentId ?? '').slice(0, 8) }}…</code></td>
-              <td>{{ r.classification }}<span v-if="r.isDemo" class="chip" style="margin-left: 6px;">demo</span></td>
+              <td>{{ r.classification }}<span v-if="r?.source === 'browser-test'" class="chip" style="margin-left: 6px;" title="Made by the test classifier, not the final trained model">test model</span></td>
               <td>v{{ r.questionnaireVersion ?? '?' }}</td><td>{{ r.modelVersion }}</td><td>{{ fmt(r.createdAt) }}</td>
             </tr>
             <tr v-if="!shown.length"><td colspan="6" class="wp-text" style="text-align: center;">No results match the filters.</td></tr>

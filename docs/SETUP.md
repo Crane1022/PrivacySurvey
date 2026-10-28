@@ -3,11 +3,12 @@
 ## 0. Honest status (read first)
 | Area | Status |
 |---|---|
+| Survey import (.docx/.csv/.json), test classifier, explanations (XAI), "Other" text box | **Tested**: logic tests (76 checks) + a full browser run in local mode. |
 | App logic on the browser-only mock store: registration/login, respondent isolation, publish/versioning, ML-schema lock, demographic snapshots, duplicate-submit guard, staff restrictions | **Tested**: `npm run test:logic` (46 checks). |
 | Firebase Authentication, Cloud Firestore and the security rules against a real project | **Written, NOT tested.** No network or Firebase project was available while building. Use the live checklist in section 9. |
 | `npm run build` | **Not run** here (offline; the uploaded `node_modules` holds Windows-only binaries). Run it on your machine. |
 | UI/responsive behaviour | Vue files compile and all imports/routes resolve, but pages were **not viewed in a browser** here. Please review each screen at desktop/tablet/mobile widths. |
-| Classification | Needs the backend/ML. Until then results show **"saved, classification pending"**. Nothing is invented. |
+| Classification | A **test classifier** (src/ml) runs in the browser until the FastAPI model exists (`VITE_CLASSIFIER_MODE=local`). Results are marked `source: browser-test` and show a "test classifier" note. Switch to `api` when the backend is ready. |
 
 ## 1. Install, run, build
 ```
@@ -111,3 +112,37 @@ dark ink text for contrast). The hero image is a built-in **SVG illustration** b
 Firebase/rules untested live (see section 0); no browser visual review done; recommendations/explanations need backend data; the hero uses an illustration unless you supply
 media; report download uses the browser's print dialog ("Save as PDF"); staff dashboards need backend endpoints for real analytics; email verification is encouraged
 but not enforced; notifications bell not built.
+
+
+## 11. Importing the survey (Staff → Import Survey)
+1. Upload `Privacy_Survey_Questions.docx` (or a CSV/JSON in the same structure). Nothing is saved yet.
+2. Check the preview ("As respondents see it" or "Compact list"). Yellow notes point at things to check, e.g. two options joined by a
+   missing line break in Word ("Labuan Melacca", "Selangor Terengganu"). Use **Edit** to fix them; the Word file is not changed.
+3. Press **Import**. Questions/fields are saved as *published* in the bank, a draft questionnaire is created, and (optionally) old items are archived.
+4. Questionnaire Management → **Preview** (walk through as a respondent) → **Publish**.
+- Ids are stable (`baseline_q1`, `sc3_o2`, `ubp_q5`, `dm_age_group`…), so re-importing updates the same items and the classifier settings keep matching.
+- For future edits, **Save as CSV** / **Export current question bank (CSV)**, edit in Excel, import again. Template: `public/templates/privacy-survey-template.csv`.
+  CSV columns: `kind, id, section, scenario, text, type, options (separated by " | "), required, ml_weight, ml_concern_end`. Write `Other [text]` for an Other option with a text box.
+- Word format rules the importer understands are documented at the top of `src/import/parseDocx.js`.
+
+## 12. Test classifier and explanations (Staff → ML Model & Test Lab)
+- Code: `src/ml/` — `index.js` (the plug: `classify()` + list of models), `models/weightedScore.js`, `models/westinCore.js`, `explain.js` (XAI), `defaultModelConfig.js` (starting weights).
+- **Weighted concern score**: each answer → concern value 0..1 from its position in the option list; score = weighted average; ≥ Fundamentalist threshold / ≤ Unconcerned threshold / otherwise Pragmatist.
+  Explanation = each answer's exact share of the score (`weight × (concern − 0.5) / total weight`), so it is a faithful explanation, not an approximation.
+- **Westin core rule**: protective on all core statements = Fundamentalist, unprotective on all = Unconcerned, else Pragmatist.
+- In the Test Lab you pick test answers and change weights / "most-concerned end" / thresholds; the result and explanation update instantly.
+  **Save settings** stores them in `system_settings/ml_model` (version +1). **Re-run on all saved responses** re-classifies existing data.
+- `ubp_q14` (install updates without checking reviews) has weight 0 because its privacy direction is unclear. Decide with your supervisor.
+- Add a model: create `src/ml/models/myModel.js` with `{ id, name, description, predict({ questions, answers, config }) }` and add it to `MODELS` in `src/ml/index.js`.
+- Explanation shape (any future model, including a backend SHAP model, just returns this and the result page shows it):
+  `{ method, summary, score, thresholds, factors: [{ questionId, label, section, answer, contribution }], sections: [{ section, score }] }`
+
+### Firestore rules: REDEPLOY after this update
+`firestore.rules` now (a) lets signed-in users read `system_settings/ml_model`, and (b) lets a respondent create ONE `privacy_results/res_<responseId>`
+for their own response with `source == 'browser-test'` (admins may re-run). Deploy: `firebase deploy --only firestore:rules`.
+When the FastAPI backend writes results, delete the marked TEST CLASSIFIER block and set `VITE_CLASSIFIER_MODE=api`.
+
+### Demo data removed
+The seeded demo questionnaire, the fixed "Pragmatist" demo result and the sample dashboard numbers are gone. Analytics pages count the real stored
+responses/results. Question-level and demographic breakdowns need an admin account (survey_responses is admin-only). Clustering and accuracy metrics
+appear only when the ML pipeline provides them.

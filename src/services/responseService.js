@@ -1,25 +1,7 @@
 import { config } from '../config'
 import { apiRequest } from './api'
-import { db, audit, clean, C } from './core'
+import { db, audit, C } from './core'
 import { useAuthStore } from '../stores/auth'
-
-// MOCK MODE ONLY: keeps a local copy so the dashboards can be tried offline. The "result" written here is a fixed,
-// clearly flagged DEMONSTRATION sample (isDemo) and is not a prediction. Live mode never does this.
-export async function saveMockResponse(p, user) {
-  const s = await db()
-  const qn = await s.get(C.questionnaires, p.questionnaireId)
-  await s.set(C.responses, p.clientSubmissionId, clean({
-    responseId: p.clientSubmissionId, respondentId: user.uid, questionnaireId: p.questionnaireId, questionnaireVersion: p.questionnaireVersion,
-    consentVersion: p.consentVersion, consentGiven: true, demographics: p.demographics, answers: toAnswerList(p.answers),
-    questionSnapshot: qn?.questions ?? null, demographicsSnapshot: qn?.demographics ?? null,
-    status: 'submitted', isMockData: true, submittedAt: s.now(),
-  }))
-  await s.set('privacy_results', `demo_${p.clientSubmissionId}`, clean({
-    resultId: `demo_${p.clientSubmissionId}`, respondentId: user.uid, responseId: p.clientSubmissionId,
-    questionnaireVersion: p.questionnaireVersion, classification: 'Privacy Pragmatist', modelVersion: 'demonstration-only',
-    confidence: null, explanation: null, isDemo: true, createdAt: s.now(),
-  }))
-}
 
 // Stored answer format: [{ questionId, selectedOptionId } | { questionId, selectedOptionIds }]
 export function toAnswerList(answers) {

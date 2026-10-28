@@ -54,6 +54,9 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKey))
       <span class="wp-label">Options</span>
       <div v-for="(o, i) in f.options" :key="o.value" style="display: flex; gap: 6px; margin-bottom: 6px;">
         <input v-model="o.label" class="ad-input" style="flex: 1;" :aria-label="'Option ' + (i + 1)" />
+        <label class="wp-text" style="display: flex; gap: 4px; align-items: center; font-size: 12px; margin: 0; white-space: nowrap;" title="Show a text box when this option is chosen">
+          <input v-model="o.other" type="checkbox" /> text box
+        </label>
         <button type="button" class="wp-btn ad-mini" aria-label="Move up" @click="move(i, -1)">↑</button>
         <button type="button" class="wp-btn ad-mini" aria-label="Move down" @click="move(i, 1)">↓</button>
         <button type="button" class="wp-btn ad-mini ad-danger" aria-label="Remove option" :disabled="f.options.length <= 2" @click="f.options.splice(i, 1)">✕</button>

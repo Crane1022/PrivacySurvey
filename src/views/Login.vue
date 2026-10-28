@@ -42,7 +42,7 @@ async function submit() {
     <h1 class="head rise" style="--d: .08s">Welcome <span class="serif-i">back.</span></h1>
     <p class="wp-text rise" style="--d: .14s">Sign in to continue your privacy journey.</p>
 
-    <p v-if="config.isMock" class="wp-demo" role="note">Demonstration mode: passwords are not checked and no real account is created.</p>
+    <p v-if="config.isMock" class="wp-demo" role="note">Local test mode: passwords are not checked and no real account is created.</p>
     <p v-if="route.query.redirect" class="wp-text" style="font-size: 13px;">Please sign in to continue to your assessment.</p>
 
     <form novalidate class="rise" style="--d: .2s" @submit.prevent="submit">

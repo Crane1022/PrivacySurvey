@@ -46,7 +46,7 @@ async function submit() {
     <p class="wp-eyebrow rise">CREATE ACCOUNT</p>
     <h1 class="head rise" style="--d: .08s">Begin your <span class="serif-i">journey.</span></h1>
     <p class="wp-text rise" style="--d: .14s">An account keeps your results private and saved in your own dashboard.</p>
-    <p v-if="config.isMock" class="wp-demo" role="note">Demonstration mode: no real account is created and passwords are not stored.</p>
+    <p v-if="config.isMock" class="wp-demo" role="note">Local test mode: no real account is created and passwords are not stored.</p>
 
     <form novalidate class="rise" style="--d: .2s" @submit.prevent="submit">
       <div class="wp-field">

@@ -8,6 +8,7 @@ import { WPSI_CATEGORIES } from '../utils/wpsi'
 import Icon from '../components/ui/Icon.vue'
 import StateBlock from '../components/common/StateBlock.vue'
 import DemoBanner from '../components/common/DemoBanner.vue'
+import ExplanationPanel from '../components/ml/ExplanationPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,7 +73,7 @@ const fmt = v => (v ? new Date(v).toLocaleString(undefined, { dateStyle: 'long',
         </div>
 
         <template v-else>
-          <p v-if="outcome.result.isDemo" class="wp-demo" role="note">Demonstration result: this is a fixed sample shown in demo mode, not a prediction from the trained model.</p>
+          <p v-if="outcome.result.source === 'browser-test'" class="wp-demo" role="note">Test classifier: this result comes from the project's simple test model, not the final trained model.</p>
           <section class="hero rise" :style="{ background: meta(outcome.result.classification).bg }">
             <span class="ico" :style="{ color: meta(outcome.result.classification).color }"><Icon :name="meta(outcome.result.classification).icon" :size="26" /></span>
             <p class="wp-eyebrow">YOUR WPSI PRIVACY PROFILE</p>
@@ -94,17 +95,22 @@ const fmt = v => (v ? new Date(v).toLocaleString(undefined, { dateStyle: 'long',
               </dl>
             </section>
             <section class="wp-card rise" style="--d: .14s">
-              <h2>Why this result?</h2>
+              <h2>What the model looked at</h2>
               <template v-if="outcome.result.explanation">
-                <p class="wp-text">{{ outcome.result.explanation.summary }}</p>
-                <div v-for="f in outcome.result.explanation.factors" :key="f.feature" style="margin-bottom: 8px;">
-                  <div style="font-size: 13px; display: flex; justify-content: space-between;"><span>{{ f.feature }}</span><span>{{ f.weight }}</span></div>
-                  <div class="wp-progress"><div :style="{ width: Math.min(100, Math.abs(f.weight) * 100) + '%' }"></div></div>
-                </div>
+                <dl>
+                  <dt>Questions used</dt><dd>{{ outcome.result.explanation.usedQuestions ?? '-' }}</dd>
+                  <template v-if="outcome.result.score != null"><dt>Concern score</dt><dd>{{ Math.round(outcome.result.score * 100) }} / 100</dd></template>
+                  <dt>Method</dt><dd>{{ outcome.result.explanation.method === 'rule' ? 'Westin rule' : 'Weighted answers' }}</dd>
+                </dl>
               </template>
-              <p v-else class="wp-text">An explanation is not available yet. No factors are shown because the model has not produced any.</p>
+              <p v-else class="wp-text">An explanation is not available for this result.</p>
             </section>
           </div>
+
+          <section v-if="outcome.result.explanation" class="wp-card rise" style="--d: .18s">
+            <h2>Why this result?</h2>
+            <ExplanationPanel :explanation="outcome.result.explanation" />
+          </section>
 
           <section class="wp-card rise" style="--d: .2s">
             <h2>Recommendations</h2>

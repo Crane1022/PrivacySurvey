@@ -1,6 +1,5 @@
-import { config } from '../config'
-import { apiRequest } from './api'
 import { db, C } from './core'
+import { classifyMyResponse } from './classificationService'
 import { useAuthStore } from '../stores/auth'
 
 const byDateDesc = f => (a, b) => (String(a[f] ?? '') < String(b[f] ?? '') ? 1 : -1)
@@ -16,12 +15,9 @@ export async function getMyOutcome(responseId) {
   return { response, result: result ?? null }
 }
 
-// Asks the trusted backend to (re)run classification for a saved response. The backend validates the response,
-// runs the approved model and writes privacy_results. Mock mode has nothing to request.
+// (Re)runs classification for a saved response: the test classifier in the browser, or the backend in 'api' mode.
 export async function requestClassification(responseId) {
-  if (config.isMock) return
-  const token = await useAuthStore().getToken()
-  await apiRequest('/api/survey/classify', { method: 'POST', body: { responseId }, token })
+  await classifyMyResponse(responseId)
 }
 
 export async function listMyHistory() {

@@ -49,13 +49,14 @@ const router = createRouter({
       children: [
         { path: '', redirect: { name: 'staff-dashboard' } },
         { path: 'dashboard', name: 'staff-dashboard', component: () => import('../views/staff/StaffHome.vue'), meta: { area: 'staff', ...STAFF, title: 'Overview' } },
+        { path: 'import', name: 'admin-import', component: () => import('../views/admin/ImportSurvey.vue'), meta: { area: 'staff', ...ADMIN, title: 'Import Survey' } },
         { path: 'questions', name: 'admin-questions', component: () => import('../views/admin/QuestionBank.vue'), meta: { area: 'staff', ...ADMIN, title: 'Question Bank' } },
         { path: 'questionnaires', name: 'admin-questionnaires', component: () => import('../views/admin/QuestionnaireManagement.vue'), meta: { area: 'staff', ...ADMIN, title: 'Questionnaire Management' } },
         { path: 'demographic-questions', name: 'admin-demographics', component: () => import('../views/admin/DemographicQuestions.vue'), meta: { area: 'staff', ...ADMIN, title: 'Demographic Questions' } },
         { path: 'responses', name: 'admin-responses', component: () => import('../views/admin/SurveyResponses.vue'), meta: { area: 'staff', ...ADMIN, title: 'Survey Responses' } },
         { path: 'results', name: 'staff-results', component: () => import('../views/staff/PrivacyResults.vue'), meta: { area: 'staff', ...STAFF, title: 'Privacy Profiling Results' } },
         { path: 'analytics', name: 'admin-analytics', component: () => import('../views/admin/AdminAnalytics.vue'), meta: { area: 'staff', ...ADMIN, title: 'Research Analytics' } },
-        { path: 'ml-info', name: 'admin-ml', component: () => import('../views/admin/MlModelInfo.vue'), meta: { area: 'staff', ...ADMIN, title: 'ML Model Information' } },
+        { path: 'ml-info', name: 'admin-ml', component: () => import('../views/admin/MlModelInfo.vue'), meta: { area: 'staff', ...STAFF, title: 'ML Model & Test Lab' } },
         { path: 'users', name: 'admin-users', component: () => import('../views/admin/UserRoles.vue'), meta: { area: 'staff', ...ADMIN, title: 'User & Role Management' } },
         { path: 'settings', name: 'admin-settings', component: () => import('../views/admin/SystemSettings.vue'), meta: { area: 'staff', ...ADMIN, title: 'System Settings' } },
         ...research.map(section => ({
